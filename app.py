@@ -191,10 +191,6 @@ def update_list():
         # else:
         #     return Response(json.dumps({"No new id"}), mimetype="application/json", status=200)
 
-@app.route('/diocane')
-def diocane():
-    return Response(json.dumps('diocane'), mimetype="application/json", status=200)
-
 @app.route('/time')
 def getTime():
     import datetime
