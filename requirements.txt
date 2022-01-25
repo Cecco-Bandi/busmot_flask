@@ -1,0 +1,5 @@
+flask
+numpy
+requests
+flask_cors
+flask_mongoengine
