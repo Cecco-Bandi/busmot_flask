@@ -24,9 +24,6 @@ app.config['MONGODB_HOST'] = 'mongodb+srv://busmot:busmot@cluster0.ih22n.mongodb
 CORS(app)
 db = MongoEngine(app)
 
-# valid users list for testing
-valid_users = ['andrea', 'francesco']
-
 # RFID ticket validation machine is arbitrarly placed in the center of the frame
 RFID_POS = np.array([200, 200])
 
@@ -123,9 +120,7 @@ def gen_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
 
-# creating valid users in db
-
-
+# defines a Users collection in mongoEngine
 class Users(db.DynamicDocument):
     username = db.StringField(max_length=60, required=True)
     valid = db.BooleanField(required=True)
@@ -153,22 +148,26 @@ def login_user():
     user = "".join(user.split())
     # print(f'request body: {user}, valid_users: {valid_users[1]}')
     # user = Users.object(username = body["username"])
-    if user in valid_users:  # checks that the user who tried to validate his ticket has a subscription
-        detect_mask()  # detects the mask in 10 frames
-        # checks that in at least 6 frames out of 10 the mask is on.
-        value = check_mask()
-        print(value)
-        if value is True:
-            # finds the tracked subjects who is the closest to the RFID machine and sets his ticket and mask properties to True
-            id_track = close_to_rfid()
-            list_clients[id_track]["id"] = id_track
-            list_clients[id_track]["ticket"] = True
-            list_clients[id_track]["face_mask"] = True
-            return Response(json.dumps(list_clients), mimetype="application/json", status=200)
-        else:
-            return Response(json.dumps("Mask not worn properly"), mimetype="application/json", status=404)
-    else:
-        return Response(json.dumps("User subscription is not valid"), mimetype="application/json", status=404)
+    try:  # checks that the user who tried to validate his ticket has a subscription
+        valid_user = Users.objects(username = user)
+        if valid_user.valid:
+            detect_mask()  # detects the mask in 10 frames
+            # checks that in at least 6 frames out of 10 the mask is on.
+            value = check_mask()
+            print(value)
+            if value is True:
+                # finds the tracked subjects who is the closest to the RFID machine and sets his ticket and mask properties to True
+                id_track = close_to_rfid()
+                list_clients[id_track]["id"] = id_track
+                list_clients[id_track]["ticket"] = True
+                list_clients[id_track]["face_mask"] = True
+                return Response(json.dumps(list_clients), mimetype="application/json", status=200)
+            else:
+                return Response(json.dumps("Mask not worn properly"), mimetype="application/json", status=404)
+        else: 
+            return Response(json.dumps("User subscription is not valid"), mimetype="application/json", status=404)
+    except:
+        return Response(json.dumps("User not in DB"), mimetype="application/json", status=404)
 
 
 @app.route('/update_list', methods=['GET'])
